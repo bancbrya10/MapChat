@@ -1,14 +1,15 @@
 package edu.temple.chatapplication;
 
-import android.os.Handler;
-
-import java.io.DataOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class HttpPostThread extends Thread {
@@ -27,31 +28,38 @@ public class HttpPostThread extends Thread {
     @Override
     public void run() {
         try {
+            //assemble parameters for HTTP POST request
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("user", userName);
+            params.put("latitude", Double.toString(latitude));
+            params.put("longitude", Double.toString(longitude));
+
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, String> param : params.entrySet()) {
+                if (sb.length() != 0) {
+                    sb.append('&');
+                }
+                sb.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                sb.append('=');
+                sb.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+            }
+            byte[] postDataBytes = sb.toString().getBytes("UTF-8");
+
             URL url = new URL(POST_URL);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
-            Map<String, String> parameters = new HashMap<>();
-            parameters.put("username", userName);
-            parameters.put("latitude", Double.toString(latitude));
-            parameters.put("longitude", Double.toString(longitude));
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
             connection.setDoOutput(true);
-            DataOutputStream out = new DataOutputStream(connection.getOutputStream());
+            connection.getOutputStream().write(postDataBytes);
 
-            StringBuilder builder = new StringBuilder();
-            for (Map.Entry<String, String> entry : parameters.entrySet()) {
-                builder.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-                builder.append("=");
-                builder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-                builder.append("&");
+            Reader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
+            for (int c; (c = in.read()) >= 0;) {
+                System.out.println((char) c);
             }
-            String resultString = builder.toString();
-            String paramsString = resultString.length() > 0 ? resultString
-                    .substring(0, resultString.length() - 1) : resultString;
-
-            out.writeBytes(paramsString);
-            out.flush();
-            out.close();
         } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();

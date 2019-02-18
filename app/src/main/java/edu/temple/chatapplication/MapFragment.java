@@ -17,6 +17,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -28,6 +29,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     MapView mapView;
     View mView;
     Context mContext;
+    String userName;
 
     ArrayList<Partner> partners;
 
@@ -43,6 +45,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         Bundle args = getArguments();
         if (args != null) {
             partners = (ArrayList<Partner>) args.getSerializable("MAP_PARTNERS");
+            userName = args.getString("USER_NAME");
         }
         return mView;
     }
@@ -72,15 +75,36 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        configureMap(googleMap, this.partners);
+    }
+
+    //called when fragment first created and upon userlist update
+    public void configureMap(GoogleMap googleMap, ArrayList<Partner> partners) {
         MapsInitializer.initialize(mContext);
         googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
-       // LocationManager locManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
-        CameraPosition camPos = CameraPosition.builder().target(new LatLng(41.044089, -75.301557)).zoom(15).bearing(0).build();
-        googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(camPos));
+        LatLng userPos = null;
+        float markerHue;
 
         for (int i = 0; i < partners.size(); i++) {
-            googleMap.addMarker(new MarkerOptions().position(partners.get(i).getCoordinates()).title(partners.get(i).getName()));
+            if (partners.get(i).getName().equalsIgnoreCase(userName)) {
+                markerHue = BitmapDescriptorFactory.HUE_GREEN;
+                userPos = partners.get(i).getCoordinates();
+            } else {
+                markerHue = BitmapDescriptorFactory.HUE_AZURE;
+            }
+            googleMap.addMarker(new MarkerOptions()
+                    .position(partners.get(i).getCoordinates())
+                    .title(partners.get(i).getName())
+                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue)));
         }
+        CameraPosition camPos = CameraPosition.builder()
+                .target(userPos)
+                .zoom(15)
+                .bearing(0)
+                .build();
+        googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(camPos));
     }
+
+
 }

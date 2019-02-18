@@ -30,7 +30,7 @@ public class ListFragment extends Fragment implements RecyclerViewItemClicked {
         Bundle args = getArguments();
         if (args != null) {
             partners = (ArrayList<String>) args.getSerializable("LIST_PARTNERS");
-            //listAdapter.notifyDataSetChanged();
+            listAdapter.notifyDataSetChanged();
         }
         recyclerView = v.findViewById(R.id.recycler_view);
         listAdapter = new ListAdapter(partners, this, getContext());

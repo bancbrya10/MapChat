@@ -5,7 +5,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
+
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
@@ -44,19 +44,18 @@ public class MainActivity extends AppCompatActivity {
     MapFragment mapFragment;
     ListFragment listFragment;
     FragmentManager fragmentManager;
-    boolean isPortMode;
     ArrayList<Partner> partnerList = new ArrayList<>();
     String userName;
+    boolean dialogCancelled = false;
+    boolean isPortMode;
     LocationManager locationManager;
-    LocationListener locationListener;
-
+    LocationListener locationUpdateListener;
     Handler updateHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             String httpResponse = (String) msg.obj;
             partnerList = updatePartnerList(httpResponse);
             sortPartnerList();
-
 
             Bundle listBundle = new Bundle();
             ArrayList<String> listStrings = new ArrayList<>();
@@ -70,10 +69,10 @@ public class MainActivity extends AppCompatActivity {
             if (!isPortMode) {
                 Bundle mapBundle = new Bundle();
                 mapBundle.putSerializable("MAP_PARTNERS", partnerList);
+                mapBundle.putString("USER_NAME", userName);
                 mapFragment.setArguments(mapBundle);
                 fragmentManager.beginTransaction().replace(R.id.land_container, mapFragment).commit();
             }
-            System.out.println("*********HANDLE MESSAGE***********");
             return false;
         }
     });
@@ -83,33 +82,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /*check if user has previously input a username
-         *present dialog to do so if they haven't
-         *otherwise Toast the user with welcome message*/
-        File file = new File(getFilesDir(), USERNAME_FILE);
-        if (file.exists()) {
-            if (savedInstanceState == null) {
-                try {
-                    BufferedReader br = new BufferedReader(new FileReader(file));
-                    StringBuilder sb = new StringBuilder();
-                    String currLine;
-                    while ((currLine = br.readLine()) != null) {
-                        sb.append(currLine);
-                    }
-                    br.close();
-                    userName = sb.toString();
-                    Toast.makeText(this, getString(R.string.welcome) + " " + userName, Toast.LENGTH_LONG).show();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } else {
-            displayDialog(file);
-        }
-
-        locationListener = new LocationListener() {
+        locationUpdateListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 double latitude = location.getLatitude();
@@ -136,10 +109,44 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 1);
             return;
         } else {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationUpdateListener);
         }
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationUpdateListener);
 
+
+        /*check if user has previously input a username
+         *present dialog to do so if they haven't
+         *otherwise Toast the user with welcome message*/
+        File file = new File(getFilesDir(), USERNAME_FILE);
+        if (file.exists()) {
+            if (savedInstanceState == null) {
+                try {
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    StringBuilder sb = new StringBuilder();
+                    String currLine;
+                    while ((currLine = br.readLine()) != null) {
+                        sb.append(currLine);
+                    }
+                    br.close();
+                    userName = sb.toString();
+                    //send initial location
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationUpdateListener);
+                    Toast.makeText(this, getString(R.string.welcome) + " " + userName, Toast.LENGTH_LONG).show();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            displayDialog(file);
+            if (!dialogCancelled) {
+                //send initial location
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationUpdateListener);
+            }
+        }
+
+        //start the user retrieval thread
         HttpGetThread thread = new HttpGetThread(updateHandler);
         thread.start();
 
@@ -165,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                dialogCancelled = true;
                 dialog.dismiss();
             }
         });
@@ -187,7 +195,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //in handle message have methods that update list
     public ArrayList<Partner> updatePartnerList(String httpResponse) {
         JSONArray jsonResponse = null;
         ArrayList<Partner> updatedList = new ArrayList<>();
@@ -229,9 +236,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationListener);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationUpdateListener);
             }
         }
     }
 }
-
