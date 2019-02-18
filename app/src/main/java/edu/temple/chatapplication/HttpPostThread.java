@@ -14,52 +14,47 @@ import java.util.Map;
 public class HttpPostThread extends Thread {
     final String POST_URL = "https://kamorris.com/lab/register_location.php";
 
-    Handler handler;
     String userName;
+    double latitude;
+    double longitude;
 
-    public HttpPostThread(Handler handler, String userName, double latitude, double longitude) {
-        this.handler = handler;
+    public HttpPostThread(String userName, double latitude, double longitude) {
         this.userName = userName;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     @Override
     public void run() {
-        while (true) {
-            try {
-                URL url = new URL(POST_URL);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("POST");
-                Map<String, String> parameters = new HashMap<>();
-                parameters.put("username", userName);
-                parameters.put("latitude", Double.toString(latitude));
-                parameters.put("longitude", Double.toString(longitude));
-                connection.setDoOutput(true);
-                DataOutputStream out = new DataOutputStream(connection.getOutputStream());
+        try {
+            URL url = new URL(POST_URL);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            Map<String, String> parameters = new HashMap<>();
+            parameters.put("username", userName);
+            parameters.put("latitude", Double.toString(latitude));
+            parameters.put("longitude", Double.toString(longitude));
+            connection.setDoOutput(true);
+            DataOutputStream out = new DataOutputStream(connection.getOutputStream());
 
-
-
-                StringBuilder builder = new StringBuilder();
-                for (Map.Entry<String, String> entry : parameters.entrySet()) {
-                    builder.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
-                    builder.append("=");
-                    builder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-                    builder.append("&");
-                }
-                String resultString = builder.toString();
-                String paramsString = resultString.length() > 0 ?resultString
-                        .substring(0, resultString.length() -1) : resultString;
-
-                out.writeBytes(paramsString);
-                out.flush();
-                out.close();
-
-                
-
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+            StringBuilder builder = new StringBuilder();
+            for (Map.Entry<String, String> entry : parameters.entrySet()) {
+                builder.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
+                builder.append("=");
+                builder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+                builder.append("&");
             }
+            String resultString = builder.toString();
+            String paramsString = resultString.length() > 0 ? resultString
+                    .substring(0, resultString.length() - 1) : resultString;
+
+            out.writeBytes(paramsString);
+            out.flush();
+            out.close();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
