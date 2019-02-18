@@ -32,7 +32,6 @@ public class Partner implements Comparable<Partner>{
         double endLongitude = this.coordinates.longitude;
         Location.distanceBetween(startLatitude, startLongitude, endLatitude, endLongitude, distance);
 
-
         return (int) distance[0];
     }
 }
