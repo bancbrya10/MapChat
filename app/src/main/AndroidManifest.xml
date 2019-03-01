@@ -26,6 +26,10 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBS_-YlkgXhAMxMkgSw-0IKYdEnXoobOnY" />
 
+        <service
+            android:name=".KeyService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>
