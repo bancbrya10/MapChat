@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "840269181546",
+    "firebase_url": "https://chatapplication-2972b.firebaseio.com",
+    "project_id": "chatapplication-2972b",
+    "storage_bucket": "chatapplication-2972b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:840269181546:android:22975f7689aaeed3",
+        "android_client_info": {
+          "package_name": "edu.temple.chatapplication"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "840269181546-418c68p99sa7t66v6gc1odc8a2gov3ni.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.temple.chatapplication",
+            "certificate_hash": "7056a499a8a86d8de83bfc7938b85e7e433b3034"
+          }
+        },
+        {
+          "client_id": "840269181546-837en2b57a1g70vfs928kcahvrre32ln.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrNEdcS0Rg8D_BGPgi5q-ne_adcDTdyaU"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "840269181546-837en2b57a1g70vfs928kcahvrre32ln.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

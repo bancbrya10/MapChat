@@ -137,6 +137,16 @@ public class KeyService extends Service {
         }
     }
 
+    //return true if partnerName has a matching public key file in internal storage
+    public boolean userHasPartnerKey(String partnerName) {
+        File file = new File(getFilesDir(), partnerName);
+        if (file.exists()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /*Prepares and returns a String for public key exchange with format:
      *{"user":"username","key":"PEM data"}*/
     public String getUserPublicForExchange(String userName) {

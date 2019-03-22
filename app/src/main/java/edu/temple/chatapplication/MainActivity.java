@@ -1,17 +1,30 @@
 package edu.temple.chatapplication;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
+import android.nfc.NfcAdapter;
+import android.nfc.NfcEvent;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -38,7 +51,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback {
     final String USERNAME_FILE = "username";
 
     MapFragment mapFragment;
@@ -50,6 +63,33 @@ public class MainActivity extends AppCompatActivity {
     boolean isPortMode;
     LocationManager locationManager;
     LocationListener locationUpdateListener;
+    KeyService keyService;
+
+    String partnerPublicKeyString;
+    String userKeyForExchange;
+
+    NfcAdapter nfcAdapter;
+    boolean connected;
+    BroadcastReceiver broadcastReceiver;
+
+    ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            KeyService.TestBinder binder = (KeyService.TestBinder) service;
+            keyService = binder.getService();
+            connected = true;
+
+            keyService.getMyKeyPair();
+            userKeyForExchange = keyService.getUserPublicForExchange("brendan");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            connected = false;
+        }
+    };
+
     Handler updateHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
@@ -81,6 +121,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        if (nfcAdapter == null) {
+            Toast.makeText(this, R.string.no_nfc, Toast.LENGTH_LONG).show();;
+            finish();
+            return;
+        } else {
+            nfcAdapter.setNdefPushMessageCallback(this, this);
+        }
 
         locationUpdateListener = new LocationListener() {
             @Override
@@ -157,42 +206,35 @@ public class MainActivity extends AppCompatActivity {
         listFragment = new ListFragment();
     }
 
-    /*displays dialog for creation of a username
-    *sends current location and username to API*/
-    private void displayDialog(final File file) {
-        View mView = getLayoutInflater().inflate(R.layout.dialog_add, null);
-        AlertDialog.Builder mBuilder = new AlertDialog.Builder(this);
-        mBuilder.setView(mView);
-        final AlertDialog dialog = mBuilder.create();
-        dialog.show();
-        final EditText addInput = mView.findViewById(R.id.symbol_add);
-        Button cancelButton = mView.findViewById(R.id.cancel_button);
-        Button addButton = mView.findViewById(R.id.add_button);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
+            processIntent(getIntent(), partnerPublicKeyString);
+        }
 
-        cancelButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialogCancelled = true;
-                dialog.dismiss();
-            }
-        });
-        addButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    BufferedWriter bw = new BufferedWriter(new FileWriter(file));
-                    userName = addInput.getText().toString();
-                    bw.write(userName);
-                    bw.close();
-                    userName = addInput.getText().toString();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                dialog.dismiss();
-            }
-        });
+        LocalBroadcastManager.getInstance(this)
+                .registerReceiver(broadcastReceiver, new IntentFilter("MESSAGING_EVENT"));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this)
+                .unregisterReceiver(broadcastReceiver);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Intent serviceIntent= new Intent(this, KeyService.class);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unbindService(serviceConnection);
     }
 
     public ArrayList<Partner> updatePartnerList(String httpResponse) {
@@ -239,5 +281,58 @@ public class MainActivity extends AppCompatActivity {
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 10, locationUpdateListener);
             }
         }
+    }
+
+    @Override
+    public NdefMessage createNdefMessage(NfcEvent nfcEvent) {
+        String messageString = userKeyForExchange;
+        NdefRecord ndefRecord = NdefRecord.createMime("text/plain", messageString.getBytes());
+        return new NdefMessage(ndefRecord);
+    }
+
+    private void processIntent(Intent intent, String partnerName) {
+        Parcelable[] rawMessages = intent
+                .getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+        NdefMessage msg = (NdefMessage) rawMessages[0];
+        partnerPublicKeyString = new String(msg.getRecords()[0].getPayload());
+        keyService.storePublicKey(partnerName, partnerPublicKeyString);
+    }
+
+    /*displays dialog for creation of a username
+     *sends current location and username to API*/
+    private void displayDialog(final File file) {
+        View mView = getLayoutInflater().inflate(R.layout.dialog_add, null);
+        AlertDialog.Builder mBuilder = new AlertDialog.Builder(this);
+        mBuilder.setView(mView);
+        final AlertDialog dialog = mBuilder.create();
+        dialog.show();
+        final EditText addInput = mView.findViewById(R.id.symbol_add);
+        Button cancelButton = mView.findViewById(R.id.cancel_button);
+        Button addButton = mView.findViewById(R.id.add_button);
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogCancelled = true;
+                dialog.dismiss();
+            }
+        });
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+                    userName = addInput.getText().toString();
+                    bw.write(userName);
+                    bw.close();
+                    userName = addInput.getText().toString();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                dialog.dismiss();
+            }
+        });
     }
 }
