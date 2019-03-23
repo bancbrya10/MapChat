@@ -17,6 +17,8 @@ public class MessagingService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
+        localBroadcastManager = LocalBroadcastManager.getInstance(this);
+
         //assign jsonObject message payload data
         String partnerName = null;
         String message = null;
@@ -24,7 +26,6 @@ public class MessagingService extends FirebaseMessagingService {
             jsonObject = new JSONObject(remoteMessage.getData().get("payload"));
             partnerName = jsonObject.getString("from");
             message = jsonObject.getString("message");
-
             Intent intent = new Intent("new_message");
             intent.putExtra("partner", partnerName);
             intent.putExtra("message", message);
@@ -32,9 +33,6 @@ public class MessagingService extends FirebaseMessagingService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
-
-
 
     }
 }

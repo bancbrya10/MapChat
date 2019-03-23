@@ -35,7 +35,7 @@ public class Message {
         return data;
     }
 
-    public boolean isBelongsToThisUser() {
+    public boolean belongsToThisUser() {
         return belongsToThisUser;
     }
 }
