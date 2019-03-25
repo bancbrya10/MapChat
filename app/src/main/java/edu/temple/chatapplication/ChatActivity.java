@@ -8,9 +8,11 @@ import android.os.AsyncTask;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,11 +33,11 @@ public class ChatActivity extends AppCompatActivity {
 
     private ArrayList<Message> rawMessages;
     private ChatAdapter chatAdapter;
-    private String thisUser;
-    private String partner;
     private EncryptorDecryptor encryptor;
     private KeyPair userKeyPair;
     private String partnerPublicKey;
+    private String userName;
+    private String partnerName;
 
     //layout objects
     private ListView messageList;
@@ -76,10 +78,38 @@ public class ChatActivity extends AppCompatActivity {
         Intent intent = getIntent();
         userKeyPair = (KeyPair) intent.getSerializableExtra("user_keys");
         partnerPublicKey = intent.getStringExtra("partner_key");
+        userName = intent.getStringExtra("user_name");
+        partnerName = intent.getStringExtra("partner_name");
+
         encryptor = new EncryptorDecryptor(userKeyPair, partnerPublicKey);
 
         chatAdapter = new ChatAdapter(this, rawMessages);
         messageList.setAdapter(chatAdapter);
+
+        messageList = findViewById(R.id.message_list);
+        sendButton = findViewById(R.id.send_button);
+        messageInput = findViewById(R.id.message_input);
+
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String potentialMessage = messageInput.getText().toString();
+                if (potentialMessage.length() < 160) {
+                    Message message = new Message();
+                    message.setData(potentialMessage);
+                    message.setBelongsToThisUser(true);
+                    messageInput.setText("");
+
+                    chatAdapter.addMessage(message);
+                    chatAdapter.notifyDataSetChanged();
+                    messageList.setSelection(messageList.getCount() - 1);
+
+                    new SendMessage(ChatActivity.this, userName, partnerName, potentialMessage);
+                } else {
+                    Toast.makeText(ChatActivity.this, R.string.too_long, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
     //For sending of messages to Messaging API

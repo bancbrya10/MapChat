@@ -4,11 +4,14 @@ import java.util.ArrayList;
 
 import android.app.Activity;
 import android.content.Context;
+import android.support.constraint.ConstraintLayout;
 import android.support.v7.widget.RecyclerView;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -19,6 +22,8 @@ public class ChatAdapter extends BaseAdapter {
     //layout objects
     TextView messageTV;
     ListView messageListView;
+    LinearLayout chatLayout;
+    ConstraintLayout parentLayout;
 
     public ChatAdapter(Context context, ArrayList<Message> messages) {
         this.messages = messages;
@@ -49,13 +54,17 @@ public class ChatAdapter extends BaseAdapter {
 
         messageTV = convertView.findViewById(R.id.message_tv);
         messageListView = convertView.findViewById(R.id.message_list);
+        chatLayout = convertView.findViewById(R.id.message_holder);
+        parentLayout = convertView.findViewById(R.id.constraint_layout);
 
         //set text on right if it's user's message
+        LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) chatLayout.getLayoutParams();
         if (thisMessage.belongsToThisUser()) {
-            messageListView.
+            layoutParams.gravity = Gravity.RIGHT;
         } else {
-
+            layoutParams.gravity = Gravity.LEFT;
         }
+        chatLayout.setLayoutParams(layoutParams);
         messageTV.setText(thisMessage.getData());
 
 

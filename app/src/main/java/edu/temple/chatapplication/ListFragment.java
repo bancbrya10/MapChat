@@ -1,5 +1,6 @@
 package edu.temple.chatapplication;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -9,16 +10,41 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
 public class ListFragment extends Fragment implements RecyclerViewItemClicked {
     RecyclerView recyclerView;
     ListAdapter listAdapter;
     ArrayList<String> partners;
-
+    public ListSelectListener lsListener;
 
     public ListFragment() {
         // Required empty public constructor
+    }
+
+    public interface ListSelectListener {
+        void selectedPartner(String partnerName);
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        lsListener = (ListSelectListener) context;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        lsListener = null;
     }
 
     @Override
@@ -39,9 +65,15 @@ public class ListFragment extends Fragment implements RecyclerViewItemClicked {
         return v;
     }
 
-    //TODO alter code for actual use
+    //when user clicks item in list, pass selected user up to parent Activity if their key is saved.
     @Override
     public void userItemClick(View v, int position) {
-        Toast.makeText(getContext(), partners.get(position).toString(), Toast.LENGTH_SHORT).show();
+        String partnerName = partners.get(position).toString();
+        File file = new File(getContext().getFilesDir(), partnerName);
+        if (file.exists()) {
+            lsListener.selectedPartner(partnerName);
+        } else {
+            Toast.makeText(getContext(), R.string.no_key_error, Toast.LENGTH_LONG).show();
+        }
     }
 }

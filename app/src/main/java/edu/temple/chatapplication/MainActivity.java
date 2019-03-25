@@ -35,6 +35,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.iid.FirebaseInstanceId;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -47,11 +48,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-public class MainActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback {
+public class MainActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback, ListFragment.ListSelectListener{
     final String USERNAME_FILE = "username";
 
     MapFragment mapFragment;
@@ -64,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
     LocationManager locationManager;
     LocationListener locationUpdateListener;
     KeyService keyService;
+    MyFirebaseInstanceIDService fbIDService;
+
 
     String partnerPublicKeyString;
     String userKeyForExchange;
@@ -213,6 +217,9 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
             processIntent(getIntent(), partnerPublicKeyString);
         }
 
+        fbIDService = new MyFirebaseInstanceIDService(userName);
+        fbIDService.sendRegistrationToServer(FirebaseInstanceId.getInstance().getToken());
+
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(broadcastReceiver, new IntentFilter("MESSAGING_EVENT"));
     }
@@ -334,5 +341,16 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
                 dialog.dismiss();
             }
         });
+    }
+
+    //implement ListFragment.ListSelectListener
+    @Override
+    public void selectedPartner(String partnerName) {
+        Intent intent = new Intent(this, ChatActivity.class);
+        intent.putExtra("user_keys", keyService.getMyKeyPair());
+        intent.putExtra("partner_key", keyService.getPublicKey(partnerName));
+        intent.putExtra("user_name", userName);
+        intent.putExtra("partner_name", partnerName);
+        startActivity(intent);
     }
 }

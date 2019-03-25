@@ -10,4 +10,6 @@
     <string name="no_nfc">NFC is not available on this device.</string>
     <string name="enter_message">Enter Message</string>
     <string name="send_msg">SEND</string>
+    <string name="no_key_error">You have not yet exchanged keys with this partner.</string>
+    <string name="too_long">Message length must be less than 160 characters</string>
 </resources>
