@@ -1,5 +1,7 @@
 package edu.temple.chatapplication;
 
+import android.annotation.SuppressLint;
+import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
@@ -23,17 +25,20 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
     private String userName;
 
     // Get updated InstanceID token
+    @SuppressLint("WrongThread")
     @Override
     public void onTokenRefresh() {
         String refreshedToken = FirebaseInstanceId.getInstance().getToken();
         Log.d("REFRESHED_TOKEN", "Refreshed Token:: " + refreshedToken);
-        sendRegistrationToServer(refreshedToken);
+        new SendTask(refreshedToken, userName, POST_URL).execute();
+        //sendRegistrationToServer(refreshedToken);
     }
 
     public MyFirebaseInstanceIDService(String userName) {
         this.userName = userName;
     }
 
+    /*
     //send token to FCM server
     public void sendRegistrationToServer(String token) {
         try {
@@ -73,4 +78,6 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
             e.printStackTrace();
         }
     }
+    */
 }
+

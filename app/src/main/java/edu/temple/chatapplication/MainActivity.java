@@ -218,7 +218,8 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
         }
 
         fbIDService = new MyFirebaseInstanceIDService(userName);
-        fbIDService.sendRegistrationToServer(FirebaseInstanceId.getInstance().getToken());
+        new SendTask(FirebaseInstanceId.getInstance().getToken(), userName, "https://kamorris.com/lab/fcm_register.php").execute();
+        //fbIDService.sendRegistrationToServer(FirebaseInstanceId.getInstance().getToken());
 
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(broadcastReceiver, new IntentFilter("MESSAGING_EVENT"));
